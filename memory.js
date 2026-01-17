@@ -286,10 +286,38 @@ window.processMemoryChat = async function(userText, apiKey, modelHigh, history =
     }
 
     // --- STEP 4: GENERATION (Hybrid Prompt) ---
-    const instructions = isQuestionMode ? `MODE: INTERROGATION. Dig for new info.` : `MODE: COMPANION. Answer naturally.`;
+    // 1. DEFINE SWAPPABLE PERSONA LOGIC
+    let responseRules = "";
+
+    if (isQuestionMode) {
+        // === INTERROGATION MODE (Restored from v1) ===
+        responseRules = `
+        2. RESPOND to the User according to these STRICT rules:
+           - **MODE: INTERROGATION**. You are a guarded auditor identifying gaps in entity profiles.
+           - **STYLE**: Minimalist, casual, and brief.
+           - **CONTENT FILTER**: 
+             - Never ask about feelings, vibes, or intangible concepts.
+             - Never ask follow-up questions about facts already present in "DATABASE RESULTS".
+             - Focus only on hard data: specific dates, roles, locations, hobbies, or concrete routines.
+           - **EXECUTION**: 
+             1. If the input is a name or entity (like "Jemi"): Scan "DATABASE RESULTS" for what is NOT there. If his hobbies, location, or occupation are unknown, ask one brief factual question (e.g., "Does he play sport?", "Does he travel?", or "Where is he based?").
+             2. If the input contains a new fact missing a date: Ask "When?"
+             3. Do not just acknowledge. If a name is mentioned, you MUST find a factual gap to query.
+		   - Always end with a question.
+        `;
+    } else {
+        // === COMPANION MODE (Default v11 Logic) ===
+        responseRules = `
+        2. RESPOND to the User according to these STRICT rules: 
+           - **MODE: COMPANION**. Minimalist. Casual. Guarded.
+           - **THE "NEED TO KNOW" RULE**: Do NOT volunteer specific data points (jobs, specific locations, specific foods) unless the user explicitly asks "What does she do?" or "Where is she?".
+           - **GENERAL QUERY RESPONSE**: If the user asks "Who is [Name]?", return ONE sentence describing the relationship and a vague vibe (e.g., "She's Arvin's friend and super creative."). STOP THERE.
+           - **NO BIOGRAPHIES**: Never list facts. Conversational ping-pong only.
+        `;
+    }
+
+    // 2. CONSTRUCT FINAL PROMPT
     const finalSystemPrompt = `
-    ${instructions}
-    
     DATABASE RESULTS: 
     ${retrievedContext}
     
@@ -300,20 +328,20 @@ window.processMemoryChat = async function(userText, apiKey, modelHigh, history =
     
     ### TASK ###
     1. ANALYZE the Database Results and History.
-    2. RESPOND to the User naturally. 
-       - If you found info in the DB, weave it in.
-       - Do not mention "Database" or "JSON".
-    3. After responding, CONSTRUCT a Knowledge Graph structure for the UI. STRUCTURE:
+    
+    ${responseRules}
+    
+	3. After responding, CONSTRUCT a Knowledge Graph structure for the UI. STRUCTURE:
         - ROOTS: Array of MAX 3 objects (decide if the user needs more than 1). If there are specific subject(s) or object(s) mention, make them into objects.
         - ROOT LABEL: MUST be exactly 1 word. UPPERCASE. (e.g. "MUSIC", not "THE MUSIC I LIKE").
         - BRANCHES: Max 5 branches. Label MUST be exactly 1 word.
         - LEAVES: Max 5 leaves per branch. Text MUST be exactly 1 word.
     
-	1. EXACT MATCH ONLY: Every 'label' and 'text' in the graph MUST be an EXACT word found in the DATABASE RESULTS or HISTORY provided above. 
-       - DO NOT use synonyms (e.g. if text says "School", DO NOT use "Education").
-    2. NO VERBS: Do not use actions (e.g. "went", "saw", "eating", "is").
-    3. NO NUMBERS/YEARS: Do not use years (e.g. "2024") or numbers.
-    4. FOCUS: Select only NAMES, NOUNS, PROPER NOUNS, or distinct ADJECTIVES.
+		- EXACT MATCH ONLY: Every 'label' and 'text' in the graph MUST be an EXACT word found in the DATABASE RESULTS or HISTORY provided above. 
+		   - DO NOT use synonyms (e.g. if text says "School", DO NOT use "Education").
+		- NO VERBS: Do not use actions (e.g. "went", "saw", "eating", "is").
+		- NO NUMBERS/YEARS: Do not use years (e.g. "2024") or numbers.
+		- FOCUS: Select only NAMES, NOUNS, PROPER NOUNS, or distinct ADJECTIVES.
 	
     CRITICAL: EACH ROOT, BRANCH, AND LEAF NEEDS TO HAVE AN INDEPENDENT, CONTEXT-DERIVED MOOD
     MOODS: AFFECTIONATE, CRYPTIC, DISLIKE, JOYFUL, CURIOUS, SAD, QUESTION.
