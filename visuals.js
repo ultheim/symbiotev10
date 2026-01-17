@@ -41,8 +41,8 @@ const PHYSICS = {
     NUCLEUS_GRAVITY: 0.005
 };
 
-const FLOCK_SIZE = 1200;
-const MAX_FLOCK = 1600;
+const FLOCK_SIZE = 900;
+const MAX_FLOCK = 1200;
 
 class Boid {
     constructor(x, y, z, isNewborn = false, burstVel = null) {
@@ -1175,4 +1175,5 @@ window.initSymbiosisAnimation = function() {
         requestAnimationFrame(animate);
     }
     animate();
+
 };
