@@ -111,7 +111,7 @@ window.processMemoryChat = async function(userText, apiKey, modelHigh, history =
 
     2. MEMORY ENTRIES (ADAPTIVE SPLITTING): 
        - If input is a continuous story (e.g. "I went to the zoo then ate toast"), keep as ONE entry.
-       - If input has UNRELATED facts (e.g. "I like red. My dog is sick."), SPLIT into separate entries.
+       - If input has UNRELATED facts (e.g. "I like red. My dog is sick.") or NONCONTINUOUS story, SPLIT into separate entries.
        - If QUESTION/CHIT-CHAT/NO NEW INFO, return empty array [].
 
     3. FACT FORMATTING (For each entry):
@@ -468,3 +468,4 @@ window.processMemoryChat = async function(userText, apiKey, modelHigh, history =
     return { choices: [{ message: { content: generationResult.cleaned } }] };
 
 };
+
